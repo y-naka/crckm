@@ -133,6 +133,8 @@ def graph_convert(parsed, key, module, ab_pre=[], re_pre=[]):
                         products.append(module.getCount())
                     re_pre = copy.deepcopy(ab_pre)
                     current = ['']
+                elif d in '+-':
+                    current = [c + d for c in current]
             else:
                 module, inheritance = graph_convert(
                     parsed, ortholog, module, re_pre, re_pre)
@@ -142,6 +144,8 @@ def graph_convert(parsed, key, module, ab_pre=[], re_pre=[]):
                     re_pre = ab_pre
                     for i in inheritance:
                         products.append(i)
+                elif d in '+-':
+                    current = [c + d for c in current]
         else:
             current = [c + ortholog for c in current]
             if d == ' ':
@@ -239,19 +243,6 @@ def mapping(kos, module_graphs):
             if all(ownership):
                 module_graphs[module].addScore(n, 1)
     return module_graphs
-
-
-def reaction_coverage(module, key, score_sum=0, num=0, calculated_score=0):
-    if len(module[key]['previous']) == 0:
-        result = float(score_sum) / num
-        if calculated_score < result:
-            calculated_score = result
-    else:
-        for pre_key in module[key]['previous']:
-            calculated_score = reaction_coverage(
-                module, pre_key, score_sum + module[pre_key]['score'],
-                num + 1, calculated_score)
-    return calculated_score
 
 
 def main(ko_file, result_file, definition_file):

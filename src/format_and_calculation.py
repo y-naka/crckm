@@ -42,6 +42,36 @@ def parser_settings():
     return (parser, args)
 
 
+def format_definition(definition_file):
+    module_definitions = dict()
+    for line in definition_file:
+        line_list = line.strip('\n').split('\t')
+        module_definitions[line_list[0]] = line_list[1]
+
+    module_graphs = dict()
+    for module in module_definitions:
+        parsed, _ = bracket_parser(module_definitions[module], dict(), 0)
+        module_graphs[module], _ = graph_convert(parsed, '0', Module())
+
+    return module_graphs
+
+
+def calculate(ko_file, module_graphs, method, threshold):
+    matrix = pd.read_csv(ko_file, sep='\t', header=0, index_col=0, comment='#')
+    columns = matrix.columns
+    out = pd.DataFrame(index=module_graphs.keys(), columns=columns)
+    out = out.fillna(0)
+    for col in columns:
+        ko_scores = matrix.ix[:, col].to_dict()
+        for module in module_graphs:
+            module_graphs[module].map(ko_scores, method)
+            out.ix[module, col] = \
+                module_graphs[module].reactionCoverage(threshold)
+    out = out.sort_index()
+
+    return out
+
+
 def main(ko_file, result_file, definition_file, method, threshold):
     # FORMAT KEGG MODULE DEFINITION
     if definition_file is None:
@@ -56,30 +86,13 @@ def main(ko_file, result_file, definition_file, method, threshold):
                 'Please run src/download.py')
             raise ValueError(message)
 
-    module_definitions = dict()
     with open(definition_file, 'r') as file:
-        for line in file:
-            line_list = line.strip('\n').split('\t')
-            module_definitions[line_list[0]] = line_list[1]
-
-    module_graphs = dict()
-    for module in module_definitions:
-        parsed, _ = bracket_parser(module_definitions[module], dict(), 0)
-        module_graphs[module], _ = graph_convert(parsed, '0', Module())
+        module_graphs = format_definition(file)
 
     # MAPPING KEGG ORTHOLOGY TO FORMATTED KEGG MODULE
     # CALCULATION REACTION COVERAGE IN KEGG MODULE AND OUTPUT FILE
-    matrix = pd.read_csv(ko_file, sep='\t', header=0, index_col=0, comment='#')
-    columns = matrix.columns
-    out = pd.DataFrame(index=module_graphs.keys(), columns=columns)
-    out = out.fillna(0)
-    for col in columns:
-        ko_scores = matrix.ix[:, col].to_dict()
-        for module in module_graphs:
-            module_graphs[module].map(ko_scores, method)
-            out.ix[module, col] = \
-                module_graphs[module].reactionCoverage(threshold)
-    out = out.sort_index()
+    with open(ko_file, 'r') as file:
+        out = calculate(file, module_graphs, method, threshold)
 
     if result_file is not None:
         out.to_csv(result_file, sep='\t')

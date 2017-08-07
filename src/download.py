@@ -22,7 +22,7 @@ def parser_settings():
     return (parser, args)
 
 
-def main(definition_file):
+def get_definition():
     with urlopen('http://rest.kegg.jp/list/module') as responce:
         module_list = \
             [r.decode('utf-8')[3:9] for r in responce.readlines()]
@@ -43,19 +43,22 @@ def main(definition_file):
         for match in iterator:
             data[module] = re.sub(
                 match.group(), data[match.group()], data[module], 1)
+    return data
 
+
+def output(data, definition_file):
+    out_str = ''.join('{0}\t{1}\n'.format(k, v) for k, v in data.items())
     if definition_file is None:
         base = os.path.dirname(os.path.abspath(__file__))
         definition_file = os.path.normpath(
             os.path.join(base, '../data/module_definition.tsv'))
 
     with open(definition_file, 'w') as outfile:
-        outfile.write(
-            ''.join('{0}\t{1}\n'.format(k, v) for k, v in data.items()))
+        outfile.write(out_str)
 
 
 if __name__ == '__main__':
     parser, args = parser_settings()
     definition_file = args.definition_file
-
-    main(definition_file)
+    data = get_definition()
+    output(data, definition_file)

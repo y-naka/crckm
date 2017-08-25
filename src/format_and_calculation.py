@@ -42,12 +42,7 @@ def parser_settings():
     return (parser, args)
 
 
-def format_definition(definition_file):
-    module_definitions = dict()
-    for line in definition_file:
-        line_list = line.strip('\n').split('\t')
-        module_definitions[line_list[0]] = line_list[1]
-
+def format_definition(module_definitions):
     module_graphs = dict()
     for module in module_definitions:
         parsed, _ = bracket_parser(module_definitions[module], dict(), 0)
@@ -87,7 +82,11 @@ def main(ko_file, result_file, definition_file, method, threshold):
             raise ValueError(message)
 
     with open(definition_file, 'r') as file:
-        module_graphs = format_definition(file)
+        module_definitions = dict()
+        for line in file:
+            line_list = line.strip('\n').split('\t')
+            module_definitions[line_list[0]] = line_list[1]
+        module_graphs = format_definition(module_definitions)
 
     # MAPPING KEGG ORTHOLOGY TO FORMATTED KEGG MODULE
     # CALCULATION REACTION COVERAGE IN KEGG MODULE AND OUTPUT FILE
